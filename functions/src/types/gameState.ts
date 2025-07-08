@@ -6,7 +6,7 @@ export interface Npc {
   id: string; 
   name: string;
   isKeyNpc: boolean;
-  locationId: string; // Added this! We need to know where NPCs are.
+  locationId: string;
   
   motivations: string[];
   personalityTags: string[];
@@ -27,9 +27,8 @@ export interface Location {
     id: string;
     name: string;
     description: string;
-    exits: Record<string, { toLocationId: string, description: string, isLocked?: boolean, keyId?: string }>; // More detailed exits
+    exits: Record<string, { toLocationId: string, description: string, isLocked?: boolean, keyId?: string }>;
     items: string[];
-    // We can derive NPCs in a location by querying the Npc objects themselves.
 }
 
 export interface Item {
@@ -38,33 +37,36 @@ export interface Item {
   description: string;
 }
 
+/**
+ * Represents the entire session document stored in Firestore.
+ * The 'gkn' is nested within this structure.
+ */
 export interface GameState {
   sessionId: string;
   userId: string;
-  
-  player: {
-    name: string;
-    locationId: string;
-    inventory: string[]; // Array of Item IDs.
-  };
-
-  world: {
-    genre: StoryGenre;
-    coreConflict: string;
-    locations: Record<string, Location>;
-    items: Record<string, Item>; // A master list of all possible items.
-    npcs: Record<string, Npc>;
-    
-    fluidCountdown: {
-      description: string;
-      stages: string[];
-      currentStage: number;
-    };
-    
-    discoverableInfo: Record<string, { description: string, isDiscovered: boolean }>;
-    storyFlags: Record<string, any>;
-  };
-  
+  initialHook: string;
   lastModified: Date;
-  turnCount: number;
+  
+  gkn: {
+    player: {
+      name: string;
+      locationId: string;
+      inventory: string[]; // Array of Item IDs.
+    };
+    world: {
+      genre: StoryGenre;
+      coreConflict: string;
+      locations: Record<string, Location>;
+      items: Record<string, Item>; // A master list of all possible items.
+      npcs: Record<string, Npc>;
+      fluidCountdown: {
+        description: string;
+        stages: string[];
+        currentStage: number;
+      };
+      discoverableInfo: Record<string, { description: string, isDiscovered: boolean }>;
+      storyFlags: Record<string, any>;
+    };
+    turnCount: number;
+  }
 }

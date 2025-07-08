@@ -18,15 +18,16 @@
     "@google/generative-ai": "^0.24.1",
     "dotenv": "^17.0.1",
     "firebase-admin": "^12.7.0",
-    "firebase-functions": "^6.3.2"
-  },
-  "devDependencies": {
+    "firebase-functions": "^6.3.2",
     "@typescript-eslint/eslint-plugin": "^5.12.0",
     "@typescript-eslint/parser": "^5.12.0",
-    "eslint": "^8.9.0",
-    "eslint-config-google": "^0.14.0",
+    "eslint": "^8.9.0"
+  },
+  "devDependencies": {
+    "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-import": "^2.25.4",
     "firebase-functions-test": "^3.1.0",
+    "prettier": "^3.6.2",
     "typescript": "^5.7.3"
   },
   "private": true

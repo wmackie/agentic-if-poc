@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic Interactive Fiction</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            color: #d1d5db;
+        }
+        #narrative-output p {
+            margin-bottom: 1.25rem;
+        }
+        .narrative-text {
+            font-family: 'Lora', serif;
+            font-size: 1.125rem;
+            line-height: 1.75;
+            color: #d1d5db;
+        }
+        .player-text {
+            font-family: 'Lora', serif;
+            font-style: italic;
+            font-size: 1.125rem;
+            line-height: 1.75;
+            color: #9ca3af;
+            border-left: 2px solid #4b5563;
+            padding-left: 1rem;
+        }
+        .system-text {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.875rem;
+            color: #6b7280;
+            text-align: center;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+        .ooc-text {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.875rem;
+            color: #a3e635; /* Lime green for GKN */
+            background-color: #1f2937;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .loading-spinner {
+            border-top-color: #3b82f6;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div id="app" class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <!-- New Game Screen -->
+        <div id="new-game-screen">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold tracking-tight text-white sm:text-5xl">Agentic Storyteller</h1>
+                <p class="mt-4 text-lg text-gray-400">Create a new world. Tell a new story.</p>
+            </div>
+            <form id="new-game-form" class="bg-gray-800 p-8 rounded-lg shadow-2xl space-y-6">
+                <div>
+                    <label for="playerName" class="block text-sm font-medium text-gray-300">Player Name</label>
+                    <input type="text" id="playerName" name="playerName" class="mt-1 block w-full bg-gray-900 border border-gray-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Dr. Aris" required>
+                </div>
+                <div>
+                    <label for="storySeed" class="block text-sm font-medium text-gray-300">Story Seed</label>
+                    <textarea id="storySeed" name="storySeed" rows="4" class="mt-1 block w-full bg-gray-900 border border-gray-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="A dusty old library with a secret to hide..." required></textarea>
+                </div>
+                <div>
+                    <label for="genre" class="block text-sm font-medium text-gray-300">Genre</label>
+                    <select id="genre" name="genre" class="mt-1 block w-full bg-gray-900 border border-gray-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <option>Adventure</option>
+                        <option>High Fantasy</option>
+                        <option>Horror</option>
+                        <option>Gritty Realism</option>
+                        <option>Survival</option>
+                        <option>Spy Thriller</option>
+                        <option>Teen Drama</option>
+                        <option>Cyberpunk</option>
+                        <option selected>Sci-Fi</option>
+                    </select>
+                </div>
+                <button type="submit" id="create-story-btn" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-gray-800 disabled:bg-blue-800 disabled:cursor-not-allowed">
+                    Begin Your Story
+                </button>
+            </form>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="hidden">
+            <div id="narrative-output" class="mb-8 min-h-[60vh]">
+                <!-- Narrative content will be injected here -->
+            </div>
+            <div id="loading-indicator" class="text-center my-4 hidden">
+                <div class="inline-flex items-center">
+                    <div class="loading-spinner h-6 w-6 rounded-full border-4 border-gray-600 mr-3"></div>
+                    <span class="text-gray-400">The Grand Weaver is pondering...</span>
+                </div>
+            </div>
+            <form id="player-input-form">
+                <textarea id="player-input" rows="3" class="block w-full bg-gray-900 border border-gray-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500" placeholder="What do you do?"></textarea>
+                <div class="mt-4 flex justify-between items-center">
+                    <div class="text-xs text-gray-500">
+                        <span id="session-id-display"></span>
+                    </div>
+                    <button type="submit" id="submit-turn-btn" class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-gray-900 disabled:bg-blue-800 disabled:cursor-not-allowed">
+                        Submit
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase SDK scripts are automatically served by Firebase Hosting -->
+    <!-- These work for both the emulator and live deployment -->
+    <script src="/__/firebase/9.23.0/firebase-app-compat.js"></script>
+    <script src="/__/firebase/9.23.0/firebase-functions-compat.js"></script>
+    <script src="/__/firebase/init.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Firebase Function References ---
+            // The firebase object is automatically initialized by the scripts above.
+            const functions = firebase.functions();
+            const createNewStory = functions.httpsCallable('createNewStory');
+            const processPlayerTurn = functions.httpsCallable('processPlayerTurn');
+
+            // --- DOM Elements ---
+            const newGameScreen = document.getElementById('new-game-screen');
+            const gameScreen = document.getElementById('game-screen');
+            const newGameForm = document.getElementById('new-game-form');
+            const playerInputForm = document.getElementById('player-input-form');
+            const narrativeOutput = document.getElementById('narrative-output');
+            const playerInput = document.getElementById('player-input');
+            const sessionIdDisplay = document.getElementById('session-id-display');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const createStoryBtn = document.getElementById('create-story-btn');
+            const submitTurnBtn = document.getElementById('submit-turn-btn');
+
+            // --- App State ---
+            let currentSessionId = null;
+
+            // --- UI Helper Functions ---
+            function showLoading(isLoading, forCreation = false) {
+                if (isLoading) {
+                    loadingIndicator.classList.remove('hidden');
+                    if (forCreation) {
+                        createStoryBtn.disabled = true;
+                        createStoryBtn.textContent = 'Creating World...';
+                    } else {
+                        submitTurnBtn.disabled = true;
+                        playerInput.disabled = true;
+                    }
+                } else {
+                    loadingIndicator.classList.add('hidden');
+                    if (forCreation) {
+                        createStoryBtn.disabled = false;
+                        createStoryBtn.textContent = 'Begin Your Story';
+                    } else {
+                        submitTurnBtn.disabled = false;
+                        playerInput.disabled = false;
+                        playerInput.focus();
+                    }
+                }
+            }
+
+            function addMessageToNarrative(text, type = 'narrative') {
+                const p = document.createElement('p');
+                let cssClass = 'narrative-text';
+                if (type === 'player') {
+                    cssClass = 'player-text';
+                    p.textContent = `> ${text}`;
+                } else if (type === 'system') {
+                    cssClass = 'system-text';
+                    p.textContent = text;
+                } else if (type === 'ooc') {
+                    cssClass = 'ooc-text';
+                    p.textContent = text;
+                } else {
+                    p.textContent = text;
+                }
+                p.className = cssClass;
+                narrativeOutput.appendChild(p);
+                window.scrollTo(0, document.body.scrollHeight);
+            }
+
+            // --- Event Listeners ---
+            newGameForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                showLoading(true, true);
+                
+                const formData = new FormData(newGameForm);
+                const data = {
+                    playerName: formData.get('playerName'),
+                    storySeed: formData.get('storySeed'),
+                    genre: formData.get('genre'),
+                };
+
+                try {
+                    const result = await createNewStory(data);
+                    const { sessionId, initialHook } = result.data;
+                    
+                    currentSessionId = sessionId;
+                    sessionIdDisplay.textContent = `Session ID: ${sessionId}`;
+                    
+                    newGameScreen.classList.add('hidden');
+                    gameScreen.classList.remove('hidden');
+                    
+                    addMessageToNarrative(`Story created. Genre: ${data.genre}.`, 'system');
+                    addMessageToNarrative(initialHook, 'narrative');
+                    playerInput.focus();
+
+                } catch (error) {
+                    console.error("Error creating new story:", error);
+                    addMessageToNarrative(`A system error occurred: ${error.message}`, 'system');
+                } finally {
+                    showLoading(false, true);
+                }
+            });
+
+            playerInputForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const input = playerInput.value.trim();
+                if (!input) return;
+
+                showLoading(true);
+                addMessageToNarrative(input, 'player');
+                playerInput.value = '';
+
+                try {
+                    const result = await processPlayerTurn({
+                        sessionId: currentSessionId,
+                        playerInput: input,
+                    });
+                    
+                    const { narrative } = result.data;
+                    const isOOC = input.startsWith('[') && input.endsWith(']');
+                    addMessageToNarrative(narrative, isOOC ? 'ooc' : 'narrative');
+
+                } catch (error) {
+                    console.error("Error processing turn:", error);
+                    addMessageToNarrative(`A system error occurred: ${error.message}`, 'system');
+                } finally {
+                    showLoading(false);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

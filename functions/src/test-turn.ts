@@ -37,15 +37,14 @@ async function runTurnTest() {
         console.log(`\n--- Processing Turn 1 ---`);
         console.log(`Player Input: "${turnData.playerInput}"`);
 
+        // Corrected: The function now only returns the narrative.
         const turnResult = await processPlayerTurnLogic(turnData, { uid: "turn-test-user" });
 
         console.log("\n--- Turn Succeeded! ---");
         console.log("\nNARRATIVE RESPONSE:");
         console.log(turnResult.narrative);
 
-        // Optional: Log a piece of the updated state to see if it changed
-        console.log("\nUPDATED PLAYER LOCATION (from returned state):");
-        console.log(turnResult.updatedGameState.player.locationId);
+        // This line caused the error and has been removed, as updatedGameState is no longer returned.
 
     } catch (error) {
         console.error("\n--- Turn Processing Failed! ---");
