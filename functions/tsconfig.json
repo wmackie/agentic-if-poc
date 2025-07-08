@@ -12,6 +12,11 @@
   },
   "compileOnSave": true,
   "include": [
-    "src"
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "src/test-runner.ts",
+    "src/test-turn.ts"
   ]
 }

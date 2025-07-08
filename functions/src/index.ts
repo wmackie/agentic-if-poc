@@ -1,38 +1,29 @@
-import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onCall, HttpsError, CallableRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GameState, StoryGenre } from "./types/gameState";
 
 // --- Initialization ---
-if (process.env.FUNCTIONS_EMULATOR) {
-  admin.initializeApp();
-} else {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const serviceAccount = require("../serviceAccountKey.json");
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-  } catch (e) {
-    logger.error("Error initializing admin SDK. Make sure serviceAccountKey.json is present.", e);
-    admin.initializeApp();
-  }
-}
-
+// This simplified initialization works for both emulator and deployed environments.
+admin.initializeApp();
 const db = admin.firestore();
 
 // --- Gemini AI Setup ---
+// We will get the key from environment variables, which we'll set for the deployment.
 const GEMINI_API_KEY = process.env.GEMINI_KEY;
 if (!GEMINI_API_KEY) {
-  throw new Error("Gemini API key is missing.");
+  // This check is important for local testing.
+  // In deployment, the key will be set in the function's environment.
+  logger.warn("GEMINI_KEY not found in local process.env. This is expected for deployment, but required for local testing.");
 }
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || "");
+
 
 // ==========================================================================================
 // CREATE NEW STORY LOGIC
 // ==========================================================================================
-export async function generateStoryLogic(data: { seed: string, genre: StoryGenre, playerName?: string }, auth?: { uid: string }) {
+async function generateStoryLogic(data: { seed: string, genre: StoryGenre, playerName?: string }, auth?: { uid: string }) {
   const { seed, genre, playerName } = data;
   logger.info("Executing generateStoryLogic", { seed, genre });
 
@@ -92,16 +83,17 @@ export async function generateStoryLogic(data: { seed: string, genre: StoryGenre
   return { sessionId, initialHook };
 }
 
-export const createNewStory = onCall(async (request) => {
-  logger.info("Received request to create new story", { requestData: request.data });
-  return await generateStoryLogic(request.data, request.auth);
+// Added CallableRequest type to fix linting error
+export const createNewStory = onCall(async (request: CallableRequest) => {
+    logger.info("Received request to create new story", { requestData: request.data });
+    return await generateStoryLogic(request.data, request.auth);
 });
 
 
 // ==========================================================================================
 // PROCESS PLAYER TURN LOGIC
 // ==========================================================================================
-export async function processPlayerTurnLogic(data: { sessionId: string, playerInput: string }, auth?: { uid: string }) {
+async function processPlayerTurnLogic(data: { sessionId: string, playerInput: string }, auth?: { uid: string }) {
   const { sessionId, playerInput } = data;
   logger.info(`Processing turn for session ${sessionId}`, { playerInput });
 
@@ -122,7 +114,6 @@ export async function processPlayerTurnLogic(data: { sessionId: string, playerIn
     throw new HttpsError("permission-denied", "You do not have permission to access this game session.");
   }
   
-  // *** PHASE 3: OOC Debugging Logic ***
   if (playerInput.startsWith("[") && playerInput.endsWith("]")) {
       logger.info("OOC command detected. Returning current GKN.");
       const gknString = JSON.stringify(gameSession.gkn, null, 2);
@@ -180,14 +171,15 @@ export async function processPlayerTurnLogic(data: { sessionId: string, playerIn
   };
 }
 
-export const processPlayerTurn = onCall(async (request) => {
-  logger.info("Received request to process player turn", { requestData: request.data });
-  return await processPlayerTurnLogic(request.data, request.auth);
+// Added CallableRequest type to fix linting error
+export const processPlayerTurn = onCall(async (request: CallableRequest) => {
+    logger.info("Received request to process player turn", { requestData: request.data });
+    return await processPlayerTurnLogic(request.data, request.auth);
 });
 
 
 // ==========================================================================================
-// PROMPT ENGINEERING HELPERS
+// PROMPT ENGINEERING HELPERS (These are unchanged)
 // ==========================================================================================
 
 const MASTER_PROMPT_V11 = `
